@@ -89,3 +89,5 @@ export const Switch = React.forwardRef<React.ElementRef<typeof StyledSwitch>, Sw
     </StyledSwitch>
   )
 );
+
+Switch.displayName = "Switch";

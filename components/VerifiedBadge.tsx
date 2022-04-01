@@ -24,3 +24,5 @@ export const VerifiedBadge = React.forwardRef<
     <CheckIcon />
   </StyledVerifiedBadge>
 ));
+
+VerifiedBadge.displayName = "VerifiedBadge";

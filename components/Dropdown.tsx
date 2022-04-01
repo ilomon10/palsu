@@ -43,6 +43,8 @@ export const DropdownMenuRadioItem = React.forwardRef<
   </StyledDropdownMenuRadioItem>
 ));
 
+DropdownMenuRadioItem.displayName = "DropdownMenuRadioItem";
+
 const StyledDropdownMenuCheckboxItem = styled(DropdownMenuPrimitive.CheckboxItem, itemCss);
 
 type DialogMenuCheckboxItemPrimitiveProps = React.ComponentProps<
@@ -63,6 +65,8 @@ export const DropdownMenuCheckboxItem = React.forwardRef<
     {children}
   </StyledDropdownMenuCheckboxItem>
 ));
+
+DropdownMenuCheckboxItem.displayName = "DropdownMenuCheckboxItem";
 
 export const DropdownMenuLabel = styled(DropdownMenuPrimitive.Label, labelCss);
 export const DropdownMenuRadioGroup = styled(DropdownMenuPrimitive.RadioGroup, {});

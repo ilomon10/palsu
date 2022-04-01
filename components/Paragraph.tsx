@@ -40,3 +40,5 @@ export const Paragraph = React.forwardRef<React.ElementRef<typeof DEFAULT_TAG>, 
     );
   }
 );
+
+Paragraph.displayName = "Paragraph";

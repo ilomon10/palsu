@@ -15,9 +15,9 @@ export const TablePreviewer: React.FC<props> = ({
 }) => {
   const items = useMemo(() => {
     let temp = [...data];
-    if(!limit) temp;
+    if (!limit) temp;
     return temp.splice(0, limit);
-  }, [limit, data.length]);
+  }, [limit, data.length]); //  eslint-disable-next-line react-hooks/exhaustive-deps
   const {
     getTableProps,
     getTableBodyProps,
@@ -40,6 +40,7 @@ export const TablePreviewer: React.FC<props> = ({
     >
       <thead>
         {headerGroups.map(headerGroup => (
+          //  eslint-disable-next-line react/jsx-key
           <Box
             as="tr"
             css={{
@@ -50,7 +51,9 @@ export const TablePreviewer: React.FC<props> = ({
             {...headerGroup.getHeaderGroupProps()}
           >
             {headerGroup.headers.map((column) => (
-              <Box as={"th"}
+              //  eslint-disable-next-line react/jsx-key
+              <Box
+                as={"th"}
                 css={{
                   py: "$1",
                   px: "$1",
@@ -69,6 +72,7 @@ export const TablePreviewer: React.FC<props> = ({
         {rows.map((row) => {
           prepareRow(row);
           return (
+            //  eslint-disable-next-line react/jsx-key
             <Box
               as="tr"
               css={{
@@ -87,6 +91,7 @@ export const TablePreviewer: React.FC<props> = ({
               {...row.getRowProps()}
             >
               {row.cells.map((cell) => (
+                //  eslint-disable-next-line react/jsx-key
                 <Box
                   as="td"
                   css={{
