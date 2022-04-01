@@ -1,8 +1,17 @@
 import '../styles/globals.css'
 import type { AppProps } from 'next/app'
+import { DesignSystemProvider } from '../components/DesignSystemProvider'
+import { ToastProvider, ToastViewport } from '../components/Toast'
 
-function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />
+function App({ Component, pageProps }: AppProps) {
+  return (
+    <DesignSystemProvider>
+      <ToastProvider swipeDirection="right">
+        <Component {...pageProps} />
+        <ToastViewport />
+      </ToastProvider>
+    </DesignSystemProvider>
+  )
 }
 
-export default MyApp
+export default App

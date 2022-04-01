@@ -1,72 +1,274 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import { PlusIcon, TrashIcon, TriangleDownIcon } from '@radix-ui/react-icons';
+import type { NextPage } from 'next';
+import Head from 'next/head';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { Cell, Column } from 'react-table';
+import { Box, Button, Container, Flex, IconButton, Select, Text, TextField } from '../components';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuRightSlot,
+  DropdownMenuSeparator
+} from '../components/Dropdown';
+import { EditField } from '../components/Home/EditField';
+import { exportToCSV } from '../components/Home/exportToCSV';
+
+import { TablePreviewer } from '../components/TablePreviewer';
+import { Toast, ToastAction, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from '../components/Toast';
+
+export interface iField {
+  label: string;
+  name: string;
+  contains: string;
+  Cell?: Cell;
+}
 
 const Home: NextPage = () => {
+  const [toast, setToast] = useState<any>(false);
+  const [limit, setLimit] = useState<any>(100);
+  const [maxView, setMaxView] = useState<any>(100);
+  const [data, setData] = useState<any>(null);
+  const [fields, setFields] = useState<iField[]>([{
+    label: "Name",
+    name: "name",
+    contains: "name"
+  }, {
+    label: "Address",
+    name: "address",
+    contains: "streetAddress"
+  }, {
+    label: "Phone",
+    name: "phone",
+    contains: "phoneNumber"
+  }, {
+    label: "Job",
+    name: "job",
+    contains: "jobType"
+  }]);
+
+  const columns = useMemo<Column[]>(() => {
+    return [
+      {
+        Header: "",
+        accessor: "first_action_button",
+        Cell: ({ cell }) => (
+          <div className="action">
+            <IconButton>
+              <TriangleDownIcon
+                onClick={() => { }}
+              />
+            </IconButton>
+          </div>
+        )
+      },
+      ...fields.map(({ label, name, contains }, index) => ({
+        Header: () => (
+          <Flex align="center">
+            <Box grow={1}>
+              {label}
+            </Box>
+            <Box css={{ ml: "$2" }}>
+              <EditField
+                value={{ label, contains }}
+                onChange={(value) => {
+                  setFields(f => {
+                    f[index].label = value.label;
+                    f[index].contains = value.contains;
+                    console.log(f);
+                    return [...f];
+                  })
+                }}
+                onDelete={() => {
+                  setFields(f => {
+                    return f.filter((_, i) => i !== index);
+                  })
+                }}
+              />
+            </Box>
+          </Flex>
+        ),
+        accessor: name,
+      })),
+      {
+        accessor: "last_action_button",
+        Header: () => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild={true}>
+              <IconButton css={{ mr: "$3" }}>
+                <PlusIcon
+                  onClick={() => console.log("Add")}
+                />
+              </IconButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>New Field Type</DropdownMenuLabel>
+                {[
+                  { label: "Name", value: "name" },
+                  { label: "Address", value: "address" },
+                  { label: "Phone", value: "phone" },
+                  { label: "Job", value: "jobType" },
+                ].map(({ label, value }) => (
+                  <DropdownMenuItem
+                    key={value}
+                    onClick={() => {
+                      setFields(f => {
+                        return [
+                          ...f,
+                          {
+                            name: `${value}-${f.length + 1}`,
+                            label: `New Field ${label}`,
+                            contains: value
+                          }
+                        ]
+                      })
+                    }}>{label}</DropdownMenuItem>
+                ))}
+                <DropdownMenuItem>Custom <DropdownMenuRightSlot>Not available yet</DropdownMenuRightSlot></DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+        Cell: ({ cell }) => ""
+      },
+    ]
+  }, [fields]);
+
+  const onExport = useCallback(() => {
+    exportToCSV({
+      fields,
+      data
+    });
+    setToast(true);
+  }, [data, fields]);
+
+  useEffect(() => {
+    const pull = async () => {
+      if (!limit) return;
+      try {
+        const url = new URL(`${window.location.href}api/generate`);
+        const params = fields?.map(({ contains, name }) => [name, contains])
+        params.push(["limit", limit]);
+        url.search = new URLSearchParams(params).toString();
+        const res = await (await fetch(url.toString(), {
+          method: "GET",
+        })).json();
+        setData(res);
+        console.log(res[0]);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    pull();
+  }, [fields, limit]);
+
   return (
-    <div className={styles.container}>
+    <Flex
+      direction={"column"}
+      css={{
+        position: "fixed",
+        inset: 0
+      }}>
       <Head>
-        <title>Create Next App</title>
-        <meta name="description" content="Generated by create next app" />
+        <title>palsu</title>
+        <meta name="description" content="Fake online data generator" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+      <header>
+        <Container size="2">
+          <Flex align={"center"} css={{ py: "$2" }}>
+            <Box grow={"1"}>
+              <Text>PALSU</Text>
+            </Box>
+            <Box>
+              <Button
+                onClick={() => onExport()}
+              >
+                Export to CSV
+              </Button>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
+              <Toast open={toast} onOpenChange={setToast}>
+                <ToastTitle>Data Exported</ToastTitle>
+                <ToastAction asChild altText="Goto schedule to undo">
+                  <Button variant="green" size="1">
+                    OK
+                  </Button>
+                </ToastAction>
+              </Toast>
+            </Box>
+          </Flex>
+        </Container>
+      </header>
 
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
+      <section>
+        <Container size={"2"}>
+          <Flex css={{ mb: "$4" }}>
+            <Box css={{ mr: "$3" }}>
+              <Text as="label" css={{ mb: "$1" }}>Rows</Text>
+              <TextField
+                type="number"
+                value={limit}
+                max={1000}
+                onChange={(e) => {
+                  let value = (e.target.value);
 
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
+                  if (parseInt(value) > 1000) {
+                    value = "1000";
+                  }
 
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
+                  setLimit(value || undefined);
+                }}
+                css={{
+                  maxWidth: 75
+                }}
+              />
+            </Box>
+            <Box>
+              <Text as="label" css={{ mb: "$1" }}>Max View Row</Text>
+              <TextField
+                type="number"
+                value={maxView}
+                max={1000}
+                onChange={(e) => {
+                  let value = (e.target.value);
 
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
+                  if (parseInt(value) > 1000) {
+                    value = "1000";
+                  }
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
-    </div>
+                  setMaxView(value || undefined);
+                }}
+                css={{
+                  maxWidth: 75
+                }}
+              />
+            </Box>
+          </Flex>
+        </Container>
+      </section>
+
+      <Flex
+        as="main"
+        direction={"column"}
+        grow={1}
+        css={{
+          position: "relative",
+          overflow: "auto"
+        }}
+      >
+        <TablePreviewer
+          limit={maxView}
+          columns={columns}
+          data={data || []}
+        />
+      </Flex>
+    </Flex>
   )
 }
 
-export default Home
+export default Home;
