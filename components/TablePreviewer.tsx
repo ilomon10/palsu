@@ -39,41 +39,48 @@ export const TablePreviewer: React.FC<props> = ({
       {...getTableProps()}
     >
       <thead>
-        {headerGroups.map(headerGroup => (
-          //  eslint-disable-next-line react/jsx-key
-          <Box
-            as="tr"
-            css={{
-              textAlign: "left",
-              $$shadowColor: "$colors-slate4",
-              boxShadow: "0 2px 0 $$shadowColor, 0 -1px 0 $$shadowColor",
-            }}
-            {...headerGroup.getHeaderGroupProps()}
-          >
-            {headerGroup.headers.map((column) => (
-              //  eslint-disable-next-line react/jsx-key
-              <Box
-                as={"th"}
-                css={{
-                  py: "$1",
-                  px: "$1",
-                  whiteSpace: "nowrap",
-                  $$shadowColor: "$colors-slate4",
-                  boxShadow: "1px 0 0 $$shadowColor",
-                }}
-                {...column.getHeaderProps()}>
-                {column.render("Header")}
-              </Box>
-            ))}
-          </Box>
-        ))}
+        {headerGroups.map(headerGroup => {
+          const { key, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
+          return (
+            <Box
+              key={key}
+              as="tr"
+              css={{
+                textAlign: "left",
+                $$shadowColor: "$colors-slate4",
+                boxShadow: "0 2px 0 $$shadowColor, 0 -1px 0 $$shadowColor",
+              }}
+              {...headerGroupProps}
+            >
+              {headerGroup.headers.map((column) => {
+                const { key, ...headerProps } = column.getHeaderProps();
+                return (
+                  <Box
+                    key={key}
+                    as={"th"}
+                    css={{
+                      py: "$1",
+                      px: "$1",
+                      whiteSpace: "nowrap",
+                      $$shadowColor: "$colors-slate4",
+                      boxShadow: "1px 0 0 $$shadowColor",
+                    }}
+                    {...headerProps}>
+                    {column.render("Header")}
+                  </Box>
+                )
+              })}
+            </Box>
+          )
+        })}
       </thead>
       <tbody  {...getTableBodyProps()}>
         {rows.map((row) => {
           prepareRow(row);
+          const { key, ...rowProps } = row.getRowProps();
           return (
-            //  eslint-disable-next-line react/jsx-key
             <Box
+              key={key}
               as="tr"
               css={{
                 $$shadowColor: "$colors-slate4",
@@ -88,22 +95,25 @@ export const TablePreviewer: React.FC<props> = ({
                   }
                 }
               }}
-              {...row.getRowProps()}
+              {...rowProps}
             >
-              {row.cells.map((cell) => (
-                //  eslint-disable-next-line react/jsx-key
-                <Box
-                  as="td"
-                  css={{
-                    p: "$1",
-                    whiteSpace: "nowrap",
-                    $$shadowColor: "$colors-slate4",
-                    boxShadow: "1px 0 0 $$shadowColor"
-                  }}
-                  {...cell.getCellProps()}>
-                  {cell.render("Cell")}
-                </Box>
-              ))}
+              {row.cells.map((cell) => {
+                const { key, ...cellProps } = cell.getCellProps();
+                return (
+                  <Box
+                    key={key}
+                    as="td"
+                    css={{
+                      p: "$1",
+                      whiteSpace: "nowrap",
+                      $$shadowColor: "$colors-slate4",
+                      boxShadow: "1px 0 0 $$shadowColor"
+                    }}
+                    {...cellProps}>
+                    {cell.render("Cell")}
+                  </Box>
+                )
+              })}
             </Box>
           )
         })}
