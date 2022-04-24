@@ -121,10 +121,6 @@ const Home: NextPage = () => {
   }, [fields, classes]);
 
   const onExport = useCallback(() => {
-    // showNotification({
-    //   message: "Exporting data",
-    //   loading: true
-    // })
     exportToCSV({
       fields,
       data

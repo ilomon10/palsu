@@ -3,6 +3,7 @@ import { IconPlus } from "@tabler/icons";
 import { useFormik } from "formik";
 import { useMemo, useState } from "react"
 import { normalizeString } from "../helper";
+import * as Yup from "yup";
 
 interface iValue {
   label: string,
@@ -13,19 +14,23 @@ interface props {
   onAdd?: (value: iValue) => void
 }
 
+const Schema = Yup.object().shape({
+  label: Yup.string().required(),
+  contains: Yup.string().required(),
+})
+
 export const AddField: React.FC<props> = ({
   onAdd = () => { }
 }) => {
-  const [isTouch, setTouch] = useState(false);
 
   const { values, errors, setFieldValue, handleSubmit } = useFormik({
+    validationSchema: Schema,
     initialValues: {
       label: "",
       contains: ""
     },
-    onSubmit(values, { setSubmitting }) {
-      console.log(values);
-      setSubmitting(false);
+    onSubmit(values) {
+      onAdd(values);
     }
   });
 
@@ -80,7 +85,8 @@ export const AddField: React.FC<props> = ({
         />
 
         <MenuItem
-          onClick={() => onAdd(values)}
+          component="button"
+          type="submit"
           color="blue"
           icon={<IconPlus size={16} />}
         >Add Field</MenuItem>
