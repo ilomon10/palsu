@@ -71,7 +71,7 @@ export const TablePreviewer: React.FC<props> = ({
         })}
       </Box>
     )
-  }, [prepareRow, rows]);
+  }, [prepareRow, rows, classes]);
 
 
   return (

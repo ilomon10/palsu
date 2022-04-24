@@ -118,7 +118,7 @@ const Home: NextPage = () => {
         Cell: () => ""
       },
     ]
-  }, [fields]);
+  }, [fields, classes]);
 
   const onExport = useCallback(() => {
     // showNotification({
