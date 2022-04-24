@@ -1,6 +1,10 @@
 import { Box } from "./Box"
-import { Column, useTable } from "react-table"
-import { useMemo } from "react";
+import { Column, useBlockLayout, useTable } from "react-table"
+import { FixedSizeList } from "react-window"
+import { useCallback, useMemo } from "react";
+import useScrollbarSize from "react-scrollbar-size";
+import useStyles from "./TablePreviewer.styles";
+import { useElementSize } from "usehooks-ts";
 
 interface props {
   columns: Column[];
@@ -13,43 +17,76 @@ export const TablePreviewer: React.FC<props> = ({
   data,
   limit = 100
 }) => {
+  const { classes } = useStyles();
+
+  const [tbodyRef, { height }] = useElementSize();
+
+  const defaultColumn = useMemo(() => ({
+    width: 200,
+  }), [])
+
   const items = useMemo(() => {
     let temp = [...data];
     if (!limit) temp;
     return temp.splice(0, limit);
-  }, [limit, data.length]); //  eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [limit, data]); //  eslint-disable-next-line react-hooks/exhaustive-deps
+
+  const scrollbar = useScrollbarSize();
+
   const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
     rows,
     prepareRow,
+    totalColumnsWidth,
   } = useTable({
     columns,
     data: items,
-  });
+    defaultColumn
+  }, useBlockLayout);
+
+  const RenderRows = useCallback(({ index, style }) => {
+    const row = rows[index];
+    prepareRow(row);
+    const { key, ...rowProps } = row.getRowProps({ style });
+    return (
+      <Box
+        key={key}
+        className={classes.tr}
+        {...rowProps}
+      >
+        {/* <Box className={classes.thinLine} /> */}
+        {row.cells.map((cell) => {
+          const { key, ...cellProps } = cell.getCellProps();
+          return (
+            <Box
+              key={key}
+              className={classes.td}
+              p={"xs"}
+              {...cellProps}>
+              {cell.render("Cell")}
+            </Box>
+          )
+        })}
+      </Box>
+    )
+  }, [prepareRow, rows]);
+
+
   return (
     <Box
-      as="table"
-      css={{
-        borderCollapse: "collapse",
-        boxSizing: "border-box",
-        mt: 1
-      }}
+      className={classes.root}
       {...getTableProps()}
     >
-      <thead>
+      <div className={classes.thead}>
+        <Box className={classes.thinLine} />
         {headerGroups.map(headerGroup => {
           const { key, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
           return (
             <Box
               key={key}
-              as="tr"
-              css={{
-                textAlign: "left",
-                $$shadowColor: "$colors-slate4",
-                boxShadow: "0 2px 0 $$shadowColor, 0 -1px 0 $$shadowColor",
-              }}
+              className={classes.headerGroup}
               {...headerGroupProps}
             >
               {headerGroup.headers.map((column) => {
@@ -57,67 +94,33 @@ export const TablePreviewer: React.FC<props> = ({
                 return (
                   <Box
                     key={key}
-                    as={"th"}
-                    css={{
-                      py: "$1",
-                      px: "$1",
-                      whiteSpace: "nowrap",
-                      $$shadowColor: "$colors-slate4",
-                      boxShadow: "1px 0 0 $$shadowColor",
-                    }}
+                    p={"xs"}
+                    className={classes.headerColumn}
                     {...headerProps}>
+                    {/* <Text> */}
                     {column.render("Header")}
+                    {/* </Text> */}
                   </Box>
                 )
               })}
             </Box>
           )
         })}
-      </thead>
-      <tbody  {...getTableBodyProps()}>
-        {rows.map((row) => {
-          prepareRow(row);
-          const { key, ...rowProps } = row.getRowProps();
-          return (
-            <Box
-              key={key}
-              as="tr"
-              css={{
-                $$shadowColor: "$colors-slate4",
-                boxShadow: "0 1px 0 $$shadowColor",
-                ".action": {
-                  opacity: 0
-                },
-                "&:hover": {
-                  backgroundColor: "$slate3",
-                  ".action": {
-                    opacity: 1
-                  }
-                }
-              }}
-              {...rowProps}
-            >
-              {row.cells.map((cell) => {
-                const { key, ...cellProps } = cell.getCellProps();
-                return (
-                  <Box
-                    key={key}
-                    as="td"
-                    css={{
-                      p: "$1",
-                      whiteSpace: "nowrap",
-                      $$shadowColor: "$colors-slate4",
-                      boxShadow: "1px 0 0 $$shadowColor"
-                    }}
-                    {...cellProps}>
-                    {cell.render("Cell")}
-                  </Box>
-                )
-              })}
-            </Box>
-          )
-        })}
-      </tbody>
+        <Box className={classes.thinLine} />
+      </div>
+      <div
+        className={classes.tbody}
+        ref={tbodyRef}
+        {...getTableBodyProps()}>
+        <FixedSizeList
+          height={height}
+          itemCount={rows.length}
+          itemSize={40}
+          width={totalColumnsWidth + scrollbar.width}
+        >
+          {RenderRows}
+        </FixedSizeList>
+      </div>
     </Box >
   )
 }

@@ -1,24 +1,17 @@
-import { PlusIcon, TrashIcon, TriangleDownIcon } from '@radix-ui/react-icons';
+import { ActionIcon, Button, Container, NumberInput, Text } from '@mantine/core';
+import { IconChevronDown } from '@tabler/icons';
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useMemo, useState, useEffect, useCallback } from 'react';
-import { Cell, Column } from 'react-table';
-import { Box, Button, Container, Flex, IconButton, Select, Text, TextField } from '../components';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuLabel,
-  DropdownMenuRightSlot,
-  DropdownMenuSeparator
-} from '../components/Dropdown';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { Cell, CellProps, Column } from 'react-table';
+import { showNotification } from "@mantine/notifications";
+import { Box, Flex } from '../components';
 import { EditField } from '../components/Home/EditField';
+import { AddField } from '../components/Home/AddField';
 import { exportToCSV } from '../components/Home/exportToCSV';
-
 import { TablePreviewer } from '../components/TablePreviewer';
-import { Toast, ToastAction, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from '../components/Toast';
+import useStyles from "../components/Home/index.styles";
+import { normalizeString } from '../components/helper';
 
 export interface iField {
   label: string;
@@ -28,10 +21,10 @@ export interface iField {
 }
 
 const Home: NextPage = () => {
-  const [toast, setToast] = useState<any>(false);
   const [limit, setLimit] = useState<any>(100);
   const [maxView, setMaxView] = useState<any>(100);
   const [data, setData] = useState<any>(null);
+  const { classes } = useStyles();
   const [fields, setFields] = useState<iField[]>([{
     label: "Name",
     name: "name",
@@ -55,30 +48,32 @@ const Home: NextPage = () => {
       {
         Header: "",
         accessor: "first_action_button",
-        Cell: ({ cell }) => (
+        width: 40,
+        Cell: () => (
           <div className="action">
-            <IconButton>
-              <TriangleDownIcon
+            <ActionIcon>
+              <IconChevronDown
+                size={16}
                 onClick={() => { }}
               />
-            </IconButton>
+            </ActionIcon>
           </div>
         )
       },
       ...fields.map(({ label, name, contains }, index) => ({
         Header: () => (
-          <Flex align="center">
-            <Box grow={1}>
+          <Flex className={classes.header} align="center">
+            <Box grow>
               {label}
             </Box>
-            <Box css={{ ml: "$2" }}>
+            <div className='action'>
               <EditField
                 value={{ label, contains }}
-                onChange={(value) => {
+                onClose={(value, touched) => {
+                  if (!touched) return;
                   setFields(f => {
                     f[index].label = value.label;
                     f[index].contains = value.contains;
-                    console.log(f);
                     return [...f];
                   })
                 }}
@@ -88,62 +83,55 @@ const Home: NextPage = () => {
                   })
                 }}
               />
-            </Box>
+            </div>
           </Flex>
         ),
         accessor: name,
+        Cell: ({ value }: CellProps<{}>) => {
+          return (
+            <Text sx={{ textOverflow: 'ellipsis', overflow: 'hidden' }} title={value}>
+              {value}
+            </Text>
+          )
+        }
       })),
       {
         accessor: "last_action_button",
         Header: () => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild={true}>
-              <IconButton css={{ mr: "$3" }}>
-                <PlusIcon
-                  onClick={() => console.log("Add")}
-                />
-              </IconButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>New Field Type</DropdownMenuLabel>
-                {[
-                  { label: "Name", value: "name" },
-                  { label: "Address", value: "address" },
-                  { label: "Phone", value: "phone" },
-                  { label: "Job", value: "jobType" },
-                ].map(({ label, value }) => (
-                  <DropdownMenuItem
-                    key={value}
-                    onClick={() => {
-                      setFields(f => {
-                        return [
-                          ...f,
-                          {
-                            name: `${value}-${f.length + 1}`,
-                            label: `New Field ${label}`,
-                            contains: value
-                          }
-                        ]
-                      })
-                    }}>{label}</DropdownMenuItem>
-                ))}
-                <DropdownMenuItem>Custom <DropdownMenuRightSlot>Not available yet</DropdownMenuRightSlot></DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <>
+            <AddField
+              onAdd={(value) => {
+                setFields(f => {
+                  return [
+                    ...f,
+                    {
+                      name: `${f.length + 1}-${normalizeString(value.label)}`,
+                      label: value.label,
+                      contains: value.contains,
+                    }
+                  ];
+                })
+              }}
+            />
+          </>
         ),
-        Cell: ({ cell }) => ""
+        Cell: () => ""
       },
     ]
   }, [fields]);
 
   const onExport = useCallback(() => {
+    // showNotification({
+    //   message: "Exporting data",
+    //   loading: true
+    // })
     exportToCSV({
       fields,
       data
     });
-    setToast(true);
+    showNotification({
+      message: "Data exported"
+    })
   }, [data, fields]);
 
   useEffect(() => {
@@ -158,7 +146,6 @@ const Home: NextPage = () => {
           method: "GET",
         })).json();
         setData(res);
-        console.log(res[0]);
       } catch (err) {
         console.error(err);
       }
@@ -169,7 +156,7 @@ const Home: NextPage = () => {
   return (
     <Flex
       direction={"column"}
-      css={{
+      sx={{
         position: "fixed",
         inset: 0
       }}>
@@ -180,9 +167,9 @@ const Home: NextPage = () => {
       </Head>
 
       <header>
-        <Container size="2">
-          <Flex align={"center"} css={{ py: "$2" }}>
-            <Box grow={"1"}>
+        <Container>
+          <Flex align={"center"} py="xs">
+            <Box grow>
               <Text>PALSU</Text>
             </Box>
             <Box>
@@ -191,82 +178,49 @@ const Home: NextPage = () => {
               >
                 Export to CSV
               </Button>
-
-              <Toast open={toast} onOpenChange={setToast}>
-                <ToastTitle>Data Exported</ToastTitle>
-                <ToastAction asChild altText="Goto schedule to undo">
-                  <Button variant="green" size="1">
-                    OK
-                  </Button>
-                </ToastAction>
-              </Toast>
             </Box>
           </Flex>
         </Container>
       </header>
 
-      <section>
-        <Container size={"2"}>
-          <Flex css={{ mb: "$4" }}>
-            <Box css={{ mr: "$3" }}>
-              <Text as="label" css={{ mb: "$1" }}>Rows</Text>
-              <TextField
+      <Box pb="sm" >
+        <Container>
+          <Flex>
+            <Box mr="sm">
+              <Text component="label">Rows</Text>
+              <NumberInput
                 type="number"
                 value={limit}
                 max={1000}
-                onChange={(e) => {
-                  let value = (e.target.value);
-
-                  if (parseInt(value) > 1000) {
-                    value = "1000";
-                  }
-
+                onChange={(value: number) => {
+                  if (value > 1000) value = 1000;
                   setLimit(value || undefined);
-                }}
-                css={{
-                  maxWidth: 75
                 }}
               />
             </Box>
             <Box>
-              <Text as="label" css={{ mb: "$1" }}>Max View Row</Text>
-              <TextField
+              <Text component="label">Max View Row</Text>
+              <NumberInput
                 type="number"
                 value={maxView}
                 max={1000}
-                onChange={(e) => {
-                  let value = (e.target.value);
-
-                  if (parseInt(value) > 1000) {
-                    value = "1000";
-                  }
-
+                onChange={(value: number) => {
+                  if (value > 1000) value = 1000;
                   setMaxView(value || undefined);
-                }}
-                css={{
-                  maxWidth: 75
                 }}
               />
             </Box>
           </Flex>
         </Container>
-      </section>
+      </Box>
 
-      <Flex
-        as="main"
-        direction={"column"}
-        grow={1}
-        css={{
-          position: "relative",
-          overflow: "auto"
-        }}
-      >
+      <Box grow>
         <TablePreviewer
           limit={maxView}
           columns={columns}
           data={data || []}
         />
-      </Flex>
+      </Box>
     </Flex>
   )
 }

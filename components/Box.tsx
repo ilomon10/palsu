@@ -1,25 +1,24 @@
-import { styled } from '../stitches.config';
+import { Box as MantineBox, BoxProps, DefaultProps, MantineStyleSystemProps, PolymorphicComponentProps } from "@mantine/core";
+import React from "react"
+import useStyles, { SharedBoxStylesProps } from "./Box.styles"
 
-export const Box = styled('div', {
-  // Reset
-  boxSizing: 'border-box',
+export interface SharedBoxProps extends SharedBoxStylesProps, MantineStyleSystemProps {
+  className?: DefaultProps["className"];
+}
 
-  variants: {
-    grow: {
-      "0": {
-        flexGrow: 0,
-      },
-      "1": {
-        flexGrow: 1,
-      }
-    },
-    shrink: {
-      "0": {
-        flexShrink: 0,
-      },
-      "1": {
-        flexShrink: 1,
-      }
-    }
-  }
-});
+export const Box: React.FC<SharedBoxProps> = ({
+  children,
+  className,
+  grow,
+  shrink,
+  ...boxProps
+}) => {
+  const { classes, cx } = useStyles({
+    grow, shrink,
+  });
+  return (
+    <MantineBox className={cx(classes.root, className)} {...boxProps}>
+      {children}
+    </MantineBox>
+  )
+}
