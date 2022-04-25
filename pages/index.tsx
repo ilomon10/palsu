@@ -12,6 +12,7 @@ import { exportToCSV } from '../components/Home/exportToCSV';
 import { TablePreviewer } from '../components/TablePreviewer';
 import useStyles from "../components/Home/index.styles";
 import { normalizeString } from '../components/helper';
+import { Header } from '../components/Home/Header';
 
 export interface iField {
   label: string;
@@ -163,49 +164,37 @@ const Home: NextPage = () => {
       </Head>
 
       <header>
-        <Container>
-          <Flex align={"center"} py="xs">
-            <Box grow>
-              <Text>PALSU</Text>
-            </Box>
-            <Box>
-              <Button
-                onClick={() => onExport()}
-              >
-                Export to CSV
-              </Button>
-            </Box>
-          </Flex>
-        </Container>
+        <Header />
       </header>
 
       <Box pb="sm" >
         <Container>
-          <Flex>
-            <Box mr="sm">
-              <Text component="label">Rows</Text>
-              <NumberInput
-                type="number"
-                value={limit}
-                max={1000}
-                onChange={(value: number) => {
-                  if (value > 1000) value = 1000;
-                  setLimit(value || undefined);
-                }}
-              />
-            </Box>
-            <Box>
-              <Text component="label">Max View Row</Text>
-              <NumberInput
-                type="number"
-                value={maxView}
-                max={1000}
-                onChange={(value: number) => {
-                  if (value > 1000) value = 1000;
-                  setMaxView(value || undefined);
-                }}
-              />
-            </Box>
+          <Flex align="end">
+            <NumberInput
+              mr="xs"
+              label="Rows"
+              type="number"
+              value={limit}
+              max={1000}
+              onChange={(value: number) => {
+                if (value > 1000) value = 1000;
+                setLimit(value || undefined);
+              }}
+            />
+            <NumberInput
+              mr="xs"
+              label="Max View Row"
+              type="number"
+              value={maxView}
+              max={1000}
+              onChange={(value: number) => {
+                if (value > 1000) value = 1000;
+                setMaxView(value || undefined);
+              }}
+            />
+            <Button onClick={() => onExport()}>
+              Export to CSV
+            </Button>
           </Flex>
         </Container>
       </Box>
