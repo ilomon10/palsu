@@ -1,18 +1,30 @@
-import { ActionIcon, Button, Container, NumberInput, Text } from '@mantine/core';
-import { IconChevronDown } from '@tabler/icons';
-import type { NextPage } from 'next';
-import Head from 'next/head';
-import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Cell, CellProps, Column } from 'react-table';
+import {
+  ActionIcon,
+  Container,
+  Text,
+  TextInput,
+  ThemeIcon,
+} from "@mantine/core";
+import { IconChevronDown, IconClipboard } from "@tabler/icons";
+import type { NextPage } from "next";
+import Head from "next/head";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { Cell, CellProps, Column } from "react-table";
 import { showNotification } from "@mantine/notifications";
-import { Box, Flex } from '../components';
-import { EditField } from '../components/Home/EditField';
-import { AddField } from '../components/Home/AddField';
-import { exportToCSV } from '../components/Home/exportToCSV';
-import { TablePreviewer } from '../components/TablePreviewer';
+import { Box, Flex } from "../components";
+import { EditField } from "../components/Home/EditField";
+import { AddField } from "../components/Home/AddField";
+import { exportToCSV } from "../components/Home/exportToCSV";
+import { TablePreviewer } from "../components/TablePreviewer";
 import useStyles from "../components/Home/index.styles";
-import { normalizeString } from '../components/helper';
-import { Header } from '../components/Home/Header';
+import { normalizeString, stringToASCII } from "../components/helper";
+import { Header } from "../components/Home/Header";
+import { useClient } from "../components/client";
+import { useRouter } from "next/router";
+import { useDebounce } from "usehooks-ts";
+import { FilterForm } from "../components/Home/FilterForm";
+import { ButtonIcon } from "@radix-ui/react-icons";
+import { GeneratedUrlInput } from "../components/Home/GeneratedUrlInput";
 
 export interface iField {
   label: string;
@@ -21,28 +33,44 @@ export interface iField {
   Cell?: Cell;
 }
 
-const Home: NextPage = () => {
-  const [limit, setLimit] = useState<any>(100);
-  const [maxView, setMaxView] = useState<any>(100);
+const Home: NextPage = (a, b) => {
+  const router = useRouter();
+  const [filter, setFilter] = useState<{
+    limit: number | undefined;
+    seed: string;
+  }>({
+    seed: (router.query.seed as string) || "palsu",
+    limit: 100,
+  });
+  const [maxView, setMaxView] = useState<any>(50);
   const [data, setData] = useState<any>(null);
+  const client = useClient();
   const { classes } = useStyles();
-  const [fields, setFields] = useState<iField[]>([{
-    label: "Name",
-    name: "name",
-    contains: "name"
-  }, {
-    label: "Address",
-    name: "address",
-    contains: "streetAddress"
-  }, {
-    label: "Phone",
-    name: "phone",
-    contains: "phoneNumber"
-  }, {
-    label: "Job",
-    name: "job",
-    contains: "jobType"
-  }]);
+
+  const tempFilter = useDebounce(filter, 200);
+
+  const [fields, setFields] = useState<iField[]>([
+    {
+      label: "Name",
+      name: "name",
+      contains: "name",
+    },
+    {
+      label: "Address",
+      name: "address",
+      contains: "streetAddress",
+    },
+    {
+      label: "Phone",
+      name: "phone",
+      contains: "phoneNumber",
+    },
+    {
+      label: "Job",
+      name: "job",
+      contains: "jobType",
+    },
+  ]);
 
   const columns = useMemo<Column[]>(() => {
     return [
@@ -53,35 +81,30 @@ const Home: NextPage = () => {
         Cell: () => (
           <div className="action">
             <ActionIcon>
-              <IconChevronDown
-                size={16}
-                onClick={() => { }}
-              />
+              <IconChevronDown size={16} onClick={() => {}} />
             </ActionIcon>
           </div>
-        )
+        ),
       },
       ...fields.map(({ label, name, contains }, index) => ({
         Header: () => (
           <Flex className={classes.header} align="center">
-            <Box grow>
-              {label}
-            </Box>
-            <div className='action'>
+            <Box grow>{label}</Box>
+            <div className="action">
               <EditField
                 value={{ label, contains }}
                 onClose={(value, touched) => {
                   if (!touched) return;
-                  setFields(f => {
+                  setFields((f) => {
                     f[index].label = value.label;
                     f[index].contains = value.contains;
                     return [...f];
-                  })
+                  });
                 }}
                 onDelete={() => {
-                  setFields(f => {
+                  setFields((f) => {
                     return f.filter((_, i) => i !== index);
-                  })
+                  });
                 }}
               />
             </div>
@@ -90,11 +113,14 @@ const Home: NextPage = () => {
         accessor: name,
         Cell: ({ value }: CellProps<{}>) => {
           return (
-            <Text sx={{ textOverflow: 'ellipsis', overflow: 'hidden' }} title={value}>
+            <Text
+              sx={{ textOverflow: "ellipsis", overflow: "hidden" }}
+              title={value}
+            >
               {value}
             </Text>
-          )
-        }
+          );
+        },
       })),
       {
         accessor: "last_action_button",
@@ -102,64 +128,69 @@ const Home: NextPage = () => {
           <>
             <AddField
               onAdd={(value) => {
-                setFields(f => {
+                setFields((f) => {
                   return [
                     ...f,
                     {
                       name: `${f.length + 1}-${normalizeString(value.label)}`,
                       label: value.label,
                       contains: value.contains,
-                    }
+                    },
                   ];
-                })
+                });
               }}
             />
           </>
         ),
-        Cell: () => ""
+        Cell: () => "",
       },
-    ]
+    ];
   }, [fields, classes]);
 
   const onExport = useCallback(() => {
     exportToCSV({
       fields,
-      data
+      data,
     });
     showNotification({
-      message: "Data exported"
-    })
+      message: "Data exported",
+    });
   }, [data, fields]);
 
   useEffect(() => {
+    const { limit, seed } = filter;
     const pull = async () => {
       if (!limit) return;
       try {
-        const url = new URL(`${window.location.href}api/generate`);
-        const params = fields?.map(({ contains, name }) => [name, contains])
-        params.push(["limit", limit]);
-        url.search = new URLSearchParams(params).toString();
-        const res = await (await fetch(url.toString(), {
-          method: "GET",
-        })).json();
+        const res = await client.get(fields, limit, seed);
         setData(res);
       } catch (err) {
         console.error(err);
       }
-    }
+    };
     pull();
-  }, [fields, limit]);
+  }, [fields, filter]);
+
+  useEffect(() => {
+    if (tempFilter === undefined) return;
+    const { limit, seed } = tempFilter;
+    router.push({ query: { seed, limit } }, undefined, { shallow: true });
+  }, [tempFilter]);
 
   return (
     <Flex
       direction={"column"}
       sx={{
         position: "fixed",
-        inset: 0
-      }}>
+        inset: 0,
+      }}
+    >
       <Head>
         <title>palsu</title>
-        <meta name="description" content="Fake online data generator" />
+        <meta
+          name="description"
+          content="The fake online data generator is a tool that generates fake data for your testing application without setting up any server. You only need to enter some parameters and click generate button. After that, you can use the generated fake data in your testing application."
+        />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -167,47 +198,32 @@ const Home: NextPage = () => {
         <Header />
       </header>
 
-      <Box pb="sm" >
+      <Box pb="sm">
         <Container>
-          <Flex align="end">
-            <NumberInput
-              mr="xs"
-              label="Rows"
-              type="number"
-              value={limit}
-              max={1000}
-              onChange={(value: number) => {
-                if (value > 1000) value = 1000;
-                setLimit(value || undefined);
-              }}
+          <FilterForm
+            values={{
+              limit: Number(filter.limit) || undefined,
+              seed: filter.seed,
+            }}
+            onSubmit={function (values): void {
+              setFilter(values);
+            }}
+          />
+          <Box mt={"sm"}>
+            <GeneratedUrlInput
+              fields={fields}
+              limit={tempFilter.limit}
+              seed={tempFilter.seed}
             />
-            <NumberInput
-              mr="xs"
-              label="Max View Row"
-              type="number"
-              value={maxView}
-              max={1000}
-              onChange={(value: number) => {
-                if (value > 1000) value = 1000;
-                setMaxView(value || undefined);
-              }}
-            />
-            <Button onClick={() => onExport()}>
-              Export to CSV
-            </Button>
-          </Flex>
+          </Box>
         </Container>
       </Box>
 
       <Box grow>
-        <TablePreviewer
-          limit={maxView}
-          columns={columns}
-          data={data || []}
-        />
+        <TablePreviewer limit={maxView} columns={columns} data={data || []} />
       </Box>
     </Flex>
-  )
-}
+  );
+};
 
 export default Home;

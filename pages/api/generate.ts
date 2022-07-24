@@ -1,8 +1,13 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from "next";
 import faker from "@faker-js/faker";
+import { stringToASCII } from "../../components/helper";
 
-function getData(type: "name" | "streetAddress" | "phoneNumber" | "jobType") {
+function getData(
+  seed: number,
+  type: "name" | "streetAddress" | "phoneNumber" | "jobType"
+) {
+  faker.seed(seed);
   switch (type) {
     case "name":
       return faker.name.findName();
@@ -22,25 +27,38 @@ export default function handler(
   res: NextApiResponse<any[]>
 ) {
   const limit = req.query?.limit || 10;
+  const seed: string = (req.query?.seed as string) || "palsu";
+  let tempSeed = parseInt(stringToASCII(seed).join(""));
+  // let tempSeed = stringToASCII(seed).reduce((prev, curr) => curr + prev, 0);
   if (req.query?.limit) delete req.query?.limit;
 
   const fields: {
-    name: any,
-    type: any
+    name: any;
+    type: any;
   }[] = [];
   for (let [name, type] of Object.entries(req.query)) {
     fields.push({
-      name, type
+      name,
+      type,
     });
   }
-  const result: any[] = [];
+  const result: {
+    id: number;
+    [key: string]: any;
+  }[] = [];
   for (let i = 0; i < limit; i++) {
-    result.push(fields.reduce((p, { name, type }) => {
-      return {
-        ...p,
-        [name]: getData(type),
-      }
-    }, {}));
+    let id = tempSeed + i;
+    result.push(
+      fields.reduce(
+        (p, { name, type }) => {
+          return {
+            ...p,
+            [name]: getData(id, type),
+          };
+        },
+        { id }
+      )
+    );
   }
   res.status(200).json(result);
 }

@@ -24,7 +24,8 @@ export default createStyles(({ colors }) => ({
     flexShrink: 0,
   },
   tbody: {
-    height: "calc(100% - 40px)",
+    height: "calc(100% - 45px)",
+    // height: "100%",
     "& > div": {
       minWidth: "100%",
       // "& > div": {
@@ -56,5 +57,15 @@ export default createStyles(({ colors }) => ({
     right: 0,
     height: 1,
     backgroundColor: colors.gray[2]
+  },
+  rowOverlay: {
+    position: "absolute",
+    inset: 0,
+    top: -40*5,
+    padding: 40,
+    backgroundColor: "white",
+    opacity: 0.85,
+    textAlign: "center",
+    fontWeight: "bold"
   }
 }))

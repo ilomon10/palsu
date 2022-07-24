@@ -1,6 +1,6 @@
-import { Box } from "./Box"
-import { Column, useBlockLayout, useTable } from "react-table"
-import { FixedSizeList } from "react-window"
+import { Box } from "./Box";
+import { Column, useBlockLayout, useTable } from "react-table";
+import { FixedSizeList } from "react-window";
 import { useCallback, useMemo } from "react";
 import useScrollbarSize from "react-scrollbar-size";
 import useStyles from "./TablePreviewer.styles";
@@ -15,20 +15,20 @@ interface props {
 export const TablePreviewer: React.FC<props> = ({
   columns,
   data,
-  limit = 100
+  limit = 50,
 }) => {
   const { classes } = useStyles();
+  const additionalRow = (data.length - limit) || 0;
 
   const [tbodyRef, { height }] = useElementSize();
 
-  const defaultColumn = useMemo(() => ({
-    width: 200,
-  }), [])
+  const defaultColumn = useMemo(() => ({ width: 200 }), []);
 
   const items = useMemo(() => {
     let temp = [...data];
     if (!limit) temp;
-    return temp.splice(0, limit);
+    temp = temp.splice(0, limit);
+    return temp;
   }, [limit, data]); //  eslint-disable-next-line react-hooks/exhaustive-deps
 
   const scrollbar = useScrollbarSize();
@@ -40,49 +40,51 @@ export const TablePreviewer: React.FC<props> = ({
     rows,
     prepareRow,
     totalColumnsWidth,
-  } = useTable({
-    columns,
-    data: items,
-    defaultColumn
-  }, useBlockLayout);
+  } = useTable(
+    {
+      columns,
+      data: items,
+      defaultColumn,
+    },
+    useBlockLayout
+  );
 
-  const RenderRows = useCallback(({ index, style }) => {
-    const row = rows[index];
-    prepareRow(row);
-    const { key, ...rowProps } = row.getRowProps({ style });
-    return (
-      <Box
-        key={key}
-        className={classes.tr}
-        {...rowProps}
-      >
-        {/* <Box className={classes.thinLine} /> */}
-        {row.cells.map((cell) => {
-          const { key, ...cellProps } = cell.getCellProps();
-          return (
-            <Box
-              key={key}
-              className={classes.td}
-              p={"xs"}
-              {...cellProps}>
-              {cell.render("Cell")}
-            </Box>
-          )
-        })}
-      </Box>
-    )
-  }, [prepareRow, rows, classes]);
+  const RenderRows = useCallback(
+    ({ index, style }) => {
+      const row = rows[index];
+      prepareRow(row);
+      const { key, ...rowProps } = row.getRowProps({ style });
 
+      let overlay: boolean = false;
+      if (index >= rows.length - 1) {
+        overlay = true;
+      }
+
+      return (
+        <Box key={key} className={classes.tr} {...rowProps}>
+          {/* <Box className={classes.thinLine} /> */}
+          {overlay && <Box className={classes.rowOverlay}>+{additionalRow} more row</Box>}
+          {row.cells.map((cell) => {
+            const { key, ...cellProps } = cell.getCellProps();
+            return (
+              <Box key={key} className={classes.td} p={"xs"} {...cellProps}>
+                {cell.render("Cell")}
+              </Box>
+            );
+          })}
+        </Box>
+      );
+    },
+    [prepareRow, rows, classes]
+  );
 
   return (
-    <Box
-      className={classes.root}
-      {...getTableProps()}
-    >
+    <Box className={classes.root} {...getTableProps()}>
       <div className={classes.thead}>
         <Box className={classes.thinLine} />
-        {headerGroups.map(headerGroup => {
-          const { key, ...headerGroupProps } = headerGroup.getHeaderGroupProps();
+        {headerGroups.map((headerGroup) => {
+          const { key, ...headerGroupProps } =
+            headerGroup.getHeaderGroupProps();
           return (
             <Box
               key={key}
@@ -96,22 +98,20 @@ export const TablePreviewer: React.FC<props> = ({
                     key={key}
                     p={"xs"}
                     className={classes.headerColumn}
-                    {...headerProps}>
+                    {...headerProps}
+                  >
                     {/* <Text> */}
                     {column.render("Header")}
                     {/* </Text> */}
                   </Box>
-                )
+                );
               })}
             </Box>
-          )
+          );
         })}
         <Box className={classes.thinLine} />
       </div>
-      <div
-        className={classes.tbody}
-        ref={tbodyRef}
-        {...getTableBodyProps()}>
+      <div className={classes.tbody} ref={tbodyRef} {...getTableBodyProps()}>
         <FixedSizeList
           height={height}
           itemCount={rows.length}
@@ -121,6 +121,6 @@ export const TablePreviewer: React.FC<props> = ({
           {RenderRows}
         </FixedSizeList>
       </div>
-    </Box >
-  )
-}
+    </Box>
+  );
+};
